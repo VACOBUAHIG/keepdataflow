@@ -1,6 +1,9 @@
+import random
 import sqlite3  # # remove module from prod
+import string
 
 import pandas as pd  # remove module from prod
+from data_engineer_utils import execute_sql_statment
 from keepitsql import (
     CopyDDl,
     FromDataFrame,
@@ -10,6 +13,7 @@ from sqlalchemy import (
     create_engine,
     text,
 )
+from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 
@@ -48,6 +52,8 @@ def database_insert():
 class DataframeToDatabase:
     def __init__(self, database_url) -> None:
         self.database_url = database_url
+        self.db_engine = create_engine(self.database_url)
+        self.Session = sessionmaker(bind=self.db_engine)
 
     def refresh_data(
         self,
@@ -107,99 +113,60 @@ class DataframeToDatabase:
         self,
         source_dataframe: DataFrame,  # cls or self
         target_table: str,
-        # database_url: str, #cls
         database_module: str,
+        match_condition: list,
         target_schema: str = None,
         batch_size: int = 1000,
         temp_db_type=None,
+        # database_url: str, #cls
     ):
-        # REMEBMER  THE GOAL IS TO INSERT INTO A TEMP TABLE
-        # target_tbl = target_table
+        # Set table parmeters
+        uid = "".join(random.choices(string.ascii_lowercase, k=4))  # nosec B311
+        temp_name = f"_source_{target_table}_{uid}"
+        drop_temp_table = text(f"DROP TABLE {temp_name}")
+
+        # Generate DDL
         source_table, temp_table = CopyDDl(
             database_url=self.database_url, local_table_name=target_table, local_schema_name=None
-        ).create_ddl(temp_dll_output='sqlite')
-        print(temp_table)
+        ).create_ddl(
+            new_table_name=temp_name, temp_dll_output='sqlite'
+        )  ## change with temp table type
 
-        db_engine = create_engine(self.database_url)
-        Session = sessionmaker(bind=db_engine)
-        params = {}
-        # Use the session in a with block
-        with Session() as session:
+        table_name = target_table  ## place holder for table formater
+
+        # Initialize temp table insert statement
+        insert_temp = FromDataFrame(target_table=temp_name, target_schema=None)
+        # Initialize merge statement
+        merge_statment = FromDataFrame(target_table=table_name, target_schema=target_schema).set_df(
+            new_dataframe=source_dataframe
+        )
+        with self.Session() as session:
             try:
                 # Perform database operations
-                sql_text = text(temp_table)
-                session.execute(sql_text, params)
+                # Phase 1: Create Temp Table
+                create_temp_table = text(temp_table)
+                session.execute(create_temp_table)
 
-                # The session is committed if no exceptions are raised
-                # and is rolled back if an exception occurs
+                # Phase 2: Insert Into Temp
+                for start in range(0, len(source_dataframe), batch_size):
+                    batch_data = source_dataframe[start : start + batch_size]
+
+                    insert_sql = text(insert_temp.set_df(batch_data).sql_insert())
+                    session.execute(insert_sql)
+
+                # Phase 3: Execute Merge Statement
+                merge_sql = merge_statment.sql_merge(source_table=temp_name, join_keys=match_condition)
+                print(merge_sql)  # not ready for testing
+
+                # Phase 4: Drop temp table
+                session.execute(drop_temp_table)
+                # Phase 5: Commit Datbase
                 session.commit()
             except SQLAlchemyError as e:
                 # The session is rolled back by the context manager, but you can handle errors specifically if needed
                 print(f"An error occurred: {e}")
                 raise
-        # insert_statment = FromDataFrame(source_dataframe=source_dataframe,target_table=target_tbl).sql_insert()
-        # shouild i initialized connection in in  sepearte function ?
-        # connection = generate_datbase_connection(
-        #     database_url=self.database_url, py_database_module=database_module
-        # )  # cls
-        # connection.autocommit = False  # Important for transaction management
-        # cursor = db_engine # cls
-        # load_df = FromDataFrame(target_table="human", target_schema=None)  # cls
 
-        # try:
-        #     cursor.execute(temp_table)
-
-        #     # for start in range(0, len(source_dataframe), batch_size):
-        #     #     batch_data = source_dataframe[start : start + batch_size]
-        #     #     insert_statment = load_df.set_df(batch_data).sql_insert(
-        #     #         column_select=select_column, temp_type=temp_type
-        #     #     )
-        #     #     cursor.execute(insert_statment)
-        #     #     connection.commit()
-        #     #     print("Transaction committed.")
-
-        # except Exception as e:
-        #     print("Error occurred, rolling back transaction:", e)
-        #     connection.rollback()
-
-        # finally:
-        #     cursor.close()
-        #     connection.close()
-
-        # connection = generate_datbase_connection(
-        #     database_url=self.database_url, py_database_module=database_module
-        # )  # cls
-        # # connection.autocommit = False  # Important for transaction management
-        # cursor = connection.cursor()  # cls
-        # # load_df = FromDataFrame(target_table="human", target_schema=None)  # cls
-
-        # try:
-        #     cursor.execute(source_table)
-
-        # except Exception as e:
-        #     print("Error occurred, rolling back transaction:", e)
-        #     connection.rollback()
-
-        # finally:
-        #     cursor.close()
-        #     connection.close()
-        # load_df = FromDataFrame(target_table="human", target_schema=None)#cls
-
-        # load_df.sql_merge()
-
-        # Phase 1 Load data frame in temp table
-
-        # df
-        # Phase 1 Establish the Source table
-
-        # Phase 2# Establish the parameters for merge
-
-        # Phase 3 Create run the connection
-
-
-### Testing
-
-sql_db = "/Users/themobilescientist/Documents/projects/keepitsql/test.db"
 
 sql_db2 = "sqlite:////Users/themobilescientist/Documents/projects/keepitsql/test.db"
 data = {
@@ -228,11 +195,17 @@ df = pd.DataFrame(data)
 
 sql_db2 = "sqlite:////Users/themobilescientist/Documents/projects/archive/keepitsql/test.db"
 
-DataframeToDatabase(sql_db2).merge_data(
+get_conn = DataframeToDatabase(sql_db2)
+
+
+get_conn.merge_data(
     source_dataframe=df,
     target_table="human",
+    match_condition=['ItemID'],
     database_module=sqlite3,
 )
+
+
 # poetry add git+https://github.com/geob3d/keepitsql.git
 
 # def get_connection_type(database_url):

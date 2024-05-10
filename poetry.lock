@@ -196,13 +196,21 @@ name = "data-engineer-utils"
 version = "0.1.0"
 description = ""
 optional = false
-python-versions = "^3.9"
+python-versions = "^3.11"
 files = []
 develop = false
 
+[package.dependencies]
+beartype = "^0.18.5"
+icontract = "^2.6.6"
+loguru = "^0.7.2"
+pydantic = "^2.7"
+
 [package.source]
-type = "directory"
-url = "../data_engineer_utils"
+type = "git"
+url = "https://github.com/geob3d/data_engineer_utils.git"
+reference = "HEAD"
+resolved_reference = "9b40808ef9460ad6c9fd451c7b29d230aaf673dd"
 
 [[package]]
 name = "distlib"
@@ -371,7 +379,7 @@ develop = false
 [package.dependencies]
 beartype = "^0.18.5"
 black = "^24.3.0"
-data-engineer-utils = {path = "/Users/themobilescientist/Documents/projects/data_engineer_utils"}
+data-engineer-utils = {git = "https://github.com/geob3d/data_engineer_utils.git"}
 icontract = "^2.6.6"
 loguru = "^0.7.2"
 pandas = "^2.2.1"
@@ -383,7 +391,7 @@ sqlalchemy = "^2.0.25"
 type = "git"
 url = "https://github.com/geob3d/keepitsql.git"
 reference = "HEAD"
-resolved_reference = "8c919a550fb62b9213d05977e451112ac43e7509"
+resolved_reference = "47ff8063c03b0e69456c660df49cf5173f33bf57"
 
 [[package]]
 name = "loguru"
@@ -1134,4 +1142,4 @@ dev = ["black (>=19.3b0)", "pytest (>=4.6.2)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "87221bb3149cee180286029b78d4037d20c032382cbee9c85ffc10d405e23047"
+content-hash = "df130535571b1ea452e672aa25b32bdc100d1df7d6795cac8461ffd4bade7328"

@@ -7,6 +7,18 @@ TBD
 ## Usage
 This project is set up using poetry. To install the dependencies, run `poetry install` from the root of the project.
 
+
+## Next Steps
+    1. Udpate the keepit sql module to perform upsert from different systems natively 
+    2. Add the Database to database module
+    3. Uppdate the merge function on df_to database to dynamically chance merge type based on system 
+    4. start adding annotations and documents
+    5. in keepitsql merge function, update that joinn_key name to matched condtions
+
+
+
+
+
 ```shell
 poetry install
 ```
