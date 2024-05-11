@@ -3,7 +3,6 @@ import sqlite3  # # remove module from prod
 import string
 
 import pandas as pd  # remove module from prod
-from data_engineer_utils import execute_sql_statment
 from keepitsql import (
     CopyDDl,
     FromDataFrame,
@@ -182,6 +181,9 @@ data = {
     "Quantity": [10, 5, 50, 8],
     "Location": ["Warehouse A", "Warehouse B", "Warehouse A", "Warehouse C"],
 }
+
+
+import polars as pl
 
 df = pd.DataFrame(data)
 
