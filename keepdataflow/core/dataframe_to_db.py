@@ -181,17 +181,17 @@ class DataframeToDatabase:
                 raise
 
 
-sql_db2 = "sqlite:////Users/themobilescientist/Documents/projects/keepitsql/test.db"
-data = {
-    "ItemID": ["ID101", "ID102", "ID103", "ID104"],
-    "ItemName": ["Laptop", "Desk Chair", "USB-C Cable", "Monitor"],
-    "Description": [
-        "15-inch laptop with 8GB RAM",
-        "Ergonomic office chair",
-        "1m USB-C charging cable",
-        "24-inch LED monitors",
-    ],
-    "Category": ["Electronics", "Furniture", "Electronics", "Electronics"],
-    "Quantity": [10, 5, 50, 8],
-    "Location": ["Warehouse A", "Warehouse F", "Warehouse A", "Warehouse C"],
-}
+# sql_db2 = "sqlite:////Users/themobilescientist/Documents/projects/keepitsql/test.db"
+# data = {
+#     "ItemID": ["ID101", "ID102", "ID103", "ID104"],
+#     "ItemName": ["Laptop", "Desk Chair", "USB-C Cable", "Monitor"],
+#     "Description": [
+#         "15-inch laptop with 8GB RAM",
+#         "Ergonomic office chair",
+#         "1m USB-C charging cable",
+#         "24-inch LED monitors",
+#     ],
+#     "Category": ["Electronics", "Furniture", "Electronics", "Electronics"],
+#     "Quantity": [10, 5, 50, 8],
+#     "Location": ["Warehouse A", "Warehouse F", "Warehouse A", "Warehouse C"],
+# }
