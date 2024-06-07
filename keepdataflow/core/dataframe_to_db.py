@@ -5,7 +5,7 @@ import string
 import pandas as pd  # remove module from prod
 from keepitsql import (
     CopyDDl,
-    FromDataFrame,
+    FromDataframe,
 )
 from pandas import DataFrame
 from sqlalchemy import (
@@ -49,10 +49,10 @@ def database_insert():
 
 
 class DataframeToDatabase:
-    def __init__(self, database_url) -> None:
-        self.database_url = database_url
-        self.db_engine = create_engine(self.database_url)
-        self.Session = sessionmaker(bind=self.db_engine)
+    # def __init__(self, database_url) -> None:
+    #     self.database_url = database_url
+    #     self.db_engine = create_engine(self.database_url)
+    #     self.Session = sessionmaker(bind=self.db_engine)
 
     def refresh_data(
         self,
@@ -86,7 +86,7 @@ class DataframeToDatabase:
         )  # cls
         # connection.autocommit = False  # Important for transaction management
         cursor = connection.cursor()  # cls
-        load_df = FromDataFrame(target_table="human", target_schema=None)  # cls
+        load_df = FromDataframe(target_table="human", target_schema=None)  # cls
 
         try:
             cursor.execute(truncate_table)
@@ -112,11 +112,11 @@ class DataframeToDatabase:
         self,
         source_dataframe: DataFrame,  # cls or self
         target_table: str,
-        database_module: str,
+        dbms_type: str,
         match_condition: list,
+        temp_db_type=None,
         target_schema: str = None,
         batch_size: int = 1000,
-        temp_db_type=None,
         # database_url: str, #cls
     ):
         # Set table parmeters
@@ -128,34 +128,48 @@ class DataframeToDatabase:
         source_table, temp_table = CopyDDl(
             database_url=self.database_url, local_table_name=target_table, local_schema_name=None
         ).create_ddl(
-            new_table_name=temp_name, temp_dll_output='sqlite'
+            new_table_name=temp_name, temp_dll_output=dbms_type, drop_primary_key='Y'
         )  ## change with temp table type
 
         table_name = target_table  ## place holder for table formater
 
-        # Initialize temp table insert statement
-        insert_temp = FromDataFrame(target_table=temp_name, target_schema=None)
+        # # Initialize temp table insert statement
+        # insert_temp = FromDataframe(target_table=temp_name, target_schema=None,dataframe=source_dataframe).insert()
+        # print(insert_temp)
         # Initialize merge statement
-        merge_statment = FromDataFrame(target_table=table_name, target_schema=target_schema).set_df(
-            new_dataframe=source_dataframe
-        )
+        # merge_statment = FromDataframe(target_table=table_name, target_schema=target_schema).set_df(
+        #     new_dataframe=source_dataframe
+        # )
         with self.Session() as session:
             try:
+                # Phase 0
+                ##initialize the Keepit
+
                 # Perform database operations
+
                 # Phase 1: Create Temp Table
                 create_temp_table = text(temp_table)
                 session.execute(create_temp_table)
 
-                # Phase 2: Insert Into Temp
+                #         # Phase 2: Insert Into Temp
                 for start in range(0, len(source_dataframe), batch_size):
                     batch_data = source_dataframe[start : start + batch_size]
+                    insert_temp = FromDataframe(
+                        target_table=temp_name, target_schema=None, dataframe=batch_data
+                    ).insert()
 
-                    insert_sql = text(insert_temp.set_df(batch_data).sql_insert())
+                    insert_sql = text(insert_temp)
                     session.execute(insert_sql)
 
-                # Phase 3: Execute Merge Statement
-                merge_sql = merge_statment.sql_merge(source_table=temp_name, join_keys=match_condition)
-                print(merge_sql)  # not ready for testing
+                #         # Phase 3: Execute Merge Statement
+                merge_sql = FromDataframe(
+                    target_table=table_name, target_schema=target_schema, dataframe=batch_data
+                ).upsert(source_table=temp_name, match_condition=match_condition, dbms_output=dbms_type)
+                upsert_statement = text(merge_sql)
+                print(merge_sql)
+
+                session.execute(upsert_statement)
+                # rint(merge_sql)  # not ready for testing
 
                 # Phase 4: Drop temp table
                 session.execute(drop_temp_table)
@@ -175,52 +189,9 @@ data = {
         "15-inch laptop with 8GB RAM",
         "Ergonomic office chair",
         "1m USB-C charging cable",
-        "24-inch LED monitor",
+        "24-inch LED monitors",
     ],
     "Category": ["Electronics", "Furniture", "Electronics", "Electronics"],
     "Quantity": [10, 5, 50, 8],
-    "Location": ["Warehouse A", "Warehouse B", "Warehouse A", "Warehouse C"],
+    "Location": ["Warehouse A", "Warehouse F", "Warehouse A", "Warehouse C"],
 }
-
-
-import polars as pl
-
-df = pd.DataFrame(data)
-
-
-# DataframeToDatabase(sql_db).refresh_data(
-#     source_dataframe=df,
-#     target_table="human",
-#     database_module=sqlite3,
-# )
-
-
-sql_db2 = "sqlite:////Users/themobilescientist/Documents/projects/archive/keepitsql/test.db"
-
-get_conn = DataframeToDatabase(sql_db2)
-
-
-get_conn.merge_data(
-    source_dataframe=df,
-    target_table="human",
-    match_condition=['ItemID'],
-    database_module=sqlite3,
-)
-
-
-# poetry add git+https://github.com/geob3d/keepitsql.git
-
-# def get_connection_type(database_url):
-#     parsed_url = urlparse(database_url)
-#     # The scheme component of the URL indicates the connection type
-#     return parsed_url.scheme
-
-# # Example Usage
-# database_urls = [
-#     "postgres://user:password@localhost:5432/sampledb",
-#     "mysql://user:password@localhost:3306/sampledb",
-#     "sqlite:///path/to/database.db",
-# ]
-
-# for url in database_urls:
-#     print(f"URL: {url} - Connection Type: {get_connection_type(url)}")

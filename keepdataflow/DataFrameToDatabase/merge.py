@@ -4,7 +4,7 @@ import string
 import pandas as pd  # remove module from prod
 from keepitsql import (
     CopyDDl,
-    FromDataFrame,
+    FromDataframe,
 )
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
@@ -18,7 +18,7 @@ from sqlalchemy.exc import SQLAlchemyError
 # include_metadata_timestamps: bool = None,
 
 
-class merge:
+class Merge:
     """Class for merging a dataframe into an SQL table."""
 
     def merge(
@@ -47,9 +47,9 @@ class merge:
         table_name = target_table  ## place holder for table formater
 
         # Initialize temp table insert statement
-        insert_temp = FromDataFrame(target_table=temp_name, target_schema=None)
+        insert_temp = FromDataframe(target_table=temp_name, target_schema=None)
         # Initialize merge statement
-        merge_statment = FromDataFrame(target_table=table_name, target_schema=target_schema).set_df(
+        merge_statment = FromDataframe(target_table=table_name, target_schema=target_schema).set_df(
             new_dataframe=dataframe
         )
         with self.session as session:

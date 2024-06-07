@@ -14,6 +14,9 @@ pydantic = "^2.7"
 python = "^3.11"
 keepitsql = {git = "https://github.com/geob3d/keepitsql.git"}
 data-engineer-utils = {git = "https://github.com/geob3d/data_engineer_utils.git"}
+pyodbc = "^5.1.0"
+python-dotenv = "^1.0.1"
+pymssql = "^2.3.0"
 
 
 [tool.poetry.group.test.dependencies]
