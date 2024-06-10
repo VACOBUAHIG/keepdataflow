@@ -70,7 +70,7 @@ class SqlConn(DataframeToDatabase):
 # sql_conn = SqlConn(sql_db2).merge_data(
 #     source_dataframe=df,
 #     target_table="human",
-#     target_schema='SPO',
+
 #     match_condition=['ItemID'],
 #     dbms_type='sqlite',
 # )

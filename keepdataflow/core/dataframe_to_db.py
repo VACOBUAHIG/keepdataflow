@@ -148,6 +148,7 @@ class DataframeToDatabase:
                 # Phase 1: Create Temp Table
                 create_temp_table = text(temp_table)
                 session.execute(create_temp_table)
+                print("Temp table create complete")
 
                 # Phase 2: Insert Into Temp
                 for start in range(0, len(source_dataframe), batch_size):
@@ -158,13 +159,13 @@ class DataframeToDatabase:
 
                     insert_sql = text(insert_temp)
                     session.execute(insert_sql)
-
-                #         # Phase 3: Execute Merge Statement
+                print("Temp table load complete")
+                # Phase 3: Execute Merge Statement
                 merge_sql = FromDataframe(
                     target_table=table_name, target_schema=target_schema, dataframe=source_dataframe
                 ).upsert(source_table=temp_name, match_condition=match_condition, dbms_output=dbms_type)
                 upsert_statement = text(merge_sql)
-                print(merge_sql)
+                print("Upsert Complete")
 
                 session.execute(upsert_statement)
                 # # rint(merge_sql)  # not ready for testing
@@ -173,6 +174,7 @@ class DataframeToDatabase:
                 session.execute(drop_temp_table)
                 # Phase 5: Commit Datbase
                 session.commit()
+                print("Insert Complete")
             except SQLAlchemyError as e:
                 # The session is rolled back by the context manager, but you can handle errors specifically if needed
                 session.rollback()
