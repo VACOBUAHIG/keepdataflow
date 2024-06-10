@@ -121,8 +121,18 @@ class DataframeToDatabase:
     ):
         # Set table parmeters
         uid = "".join(random.choices(string.ascii_lowercase, k=4))  # nosec B311
+
+        # Add Logic for Sql Server Temp table
         temp_name = f"_source_{target_table}_{uid}"
-        drop_temp_table = text(f"DROP TABLE {temp_name}")
+
+        if dbms_type == 'mssql':
+            temp_target_name = f'##{temp_name}'
+        elif dbms_type == 'mssql_local':
+            temp_target_name = f'#{temp_name}'
+        else:
+            temp_target_name = temp_name
+
+        drop_temp_table = text(f"DROP TABLE {temp_target_name}")
 
         # Generate DDL
         source_table, temp_table = CopyDDl(
@@ -132,9 +142,8 @@ class DataframeToDatabase:
         table_name = target_table  ## place holder for table formater
 
         # # Initialize temp table insert statement
-        # insert_temp = FromDataframe(target_table=temp_name, target_schema=None,dataframe=source_dataframe).insert()
-        # print(insert_temp)
-        # Initialize merge statement
+        # insert_temp = FromDataframe(target_table= temp_target_name, target_schema=None,dataframe=source_dataframe).insert()
+        # # Initialize merge statement
         # merge_statment = FromDataframe(target_table=table_name, target_schema=target_schema).set_df(
         #     new_dataframe=source_dataframe
         # )
@@ -154,7 +163,7 @@ class DataframeToDatabase:
                 for start in range(0, len(source_dataframe), batch_size):
                     batch_data = source_dataframe[start : start + batch_size]
                     insert_temp = FromDataframe(
-                        target_table=temp_name, target_schema=None, dataframe=batch_data
+                        target_table=temp_target_name, target_schema=None, dataframe=batch_data
                     ).insert()
 
                     insert_sql = text(insert_temp)
@@ -163,12 +172,11 @@ class DataframeToDatabase:
                 # Phase 3: Execute Merge Statement
                 merge_sql = FromDataframe(
                     target_table=table_name, target_schema=target_schema, dataframe=source_dataframe
-                ).upsert(source_table=temp_name, match_condition=match_condition, dbms_output=dbms_type)
+                ).upsert(source_table=temp_target_name, match_condition=match_condition, dbms_output=dbms_type)
                 upsert_statement = text(merge_sql)
-                print("Upsert Complete")
 
                 session.execute(upsert_statement)
-                # # rint(merge_sql)  # not ready for testing
+                print("Upsert Complete")
 
                 # Phase 4: Drop temp table
                 session.execute(drop_temp_table)
@@ -180,9 +188,9 @@ class DataframeToDatabase:
                 session.rollback()
                 print(f"An error occurred: {e}")
                 raise
-            # finally:
-            #     # Close the session
-            #     session.close()
+            finally:
+                # Close the session
+                session.close()
 
 
 # sql_db2 = "sqlite:////Users/themobilescientist/Documents/projects/keepitsql/test.db"
