@@ -151,7 +151,7 @@ class DataframeToDatabase:
                 create_temp_table = text(temp_table)
                 session.execute(create_temp_table)
 
-                #         # Phase 2: Insert Into Temp
+                # Phase 2: Insert Into Temp
                 for start in range(0, len(source_dataframe), batch_size):
                     batch_data = source_dataframe[start : start + batch_size]
                     insert_temp = FromDataframe(
@@ -163,13 +163,13 @@ class DataframeToDatabase:
 
                 #         # Phase 3: Execute Merge Statement
                 merge_sql = FromDataframe(
-                    target_table=table_name, target_schema=target_schema, dataframe=batch_data
+                    target_table=table_name, target_schema=target_schema, dataframe=source_dataframe
                 ).upsert(source_table=temp_name, match_condition=match_condition, dbms_output=dbms_type)
                 upsert_statement = text(merge_sql)
                 print(merge_sql)
 
                 session.execute(upsert_statement)
-                # rint(merge_sql)  # not ready for testing
+                # # rint(merge_sql)  # not ready for testing
 
                 # Phase 4: Drop temp table
                 session.execute(drop_temp_table)
@@ -177,8 +177,12 @@ class DataframeToDatabase:
                 session.commit()
             except SQLAlchemyError as e:
                 # The session is rolled back by the context manager, but you can handle errors specifically if needed
+                session.rollback()
                 print(f"An error occurred: {e}")
                 raise
+            # finally:
+            #     # Close the session
+            #     session.close()
 
 
 # sql_db2 = "sqlite:////Users/themobilescientist/Documents/projects/keepitsql/test.db"
