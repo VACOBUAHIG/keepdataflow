@@ -127,9 +127,7 @@ class DataframeToDatabase:
         # Generate DDL
         source_table, temp_table = CopyDDl(
             database_url=self.database_url, local_table_name=target_table, local_schema_name=None
-        ).create_ddl(
-            new_table_name=temp_name, temp_dll_output=dbms_type, drop_primary_key='Y'
-        )  ## change with temp table type
+        ).create_ddl(new_table_name=temp_name, temp_dll_output=dbms_type, drop_primary_key='Y')
 
         table_name = target_table  ## place holder for table formater
 

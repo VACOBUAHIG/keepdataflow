@@ -392,7 +392,7 @@ sqlalchemy = "^2.0.25"
 type = "git"
 url = "https://github.com/geob3d/keepitsql.git"
 reference = "HEAD"
-resolved_reference = "f8c2579765f61d3b499b9b45c0adfd15b7588478"
+resolved_reference = "95202c19501ce319c5822ee4d101d04b18c1fa97"
 
 [[package]]
 name = "loguru"
