@@ -1,13 +1,13 @@
 repos:
-  # - repo: https://github.com/pre-commit/mirrors-mypy
-  #   rev: 'v1.1.1'
-  #   hooks:  # Related: https://stackoverflow.com/a/75003826/3858494
-  #     - id: mypy
-  #       name: mypy (python)
-  #       entry: poetry run mypy
-  #       require_serial: true
-  #       language: system
-  #       types: [python]
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: 'v1.1.1'
+    hooks:  # Related: https://stackoverflow.com/a/75003826/3858494
+      - id: mypy
+        name: mypy (python)
+        entry: poetry run mypy
+        require_serial: true
+        language: system
+        types: [python]
   # - repo: https://github.com/charliermarsh/ruff-pre-commit
   #   # Ruff version.
   #   rev: 'v0.0.261'
