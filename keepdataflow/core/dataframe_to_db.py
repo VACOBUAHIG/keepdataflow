@@ -17,7 +17,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.inspection import inspect
-from sqlalchemy.orm import Session as SessionType
 from sqlalchemy.orm import sessionmaker
 
 python_sql_drivers_to_db_abbreviations = {
