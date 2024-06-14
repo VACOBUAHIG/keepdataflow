@@ -5,7 +5,6 @@ from typing import (
 
 import pandas as pd
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
 from keepdataflow.core.dataframe_to_db import DataframeToDatabase
 
