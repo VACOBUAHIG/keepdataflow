@@ -77,36 +77,3 @@ class SqlConn:
                 return wrapper
             return attr
         raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
-
-
-data = {
-    "ItemID": ["ID101", "ID102", "ID103", "ID104"],
-    "ItemName": ["Laptop", "Desk Chair", "USB-C Cable", "Monitor"],
-    "Description": [
-        "15-inch laptop with 8GB RAM",
-        "Ergonomic office chair",
-        "1m USB-C charging cable",
-        "24-inch LED monitors",
-    ],
-    "Category": ["Electronics", "Furniture", "Electronics", "Electronics"],
-    "Quantity": [10, 5, 50, 8],
-    "Location": ["Warehouse A", "Warehouse F", "Warehouse A", "Warehouse C"],
-}
-df = pd.DataFrame(data)
-sql_db2 = "sqlite:////Users/themobilescientist/Documents/projects/archive/keepitsql/test.db"
-
-sql_db3 = "sqlite:////Users/themobilescientist/Documents/projects/archive/keepitsql/source_test.db"
-
-
-get_conn = SqlConn(sql_db2)
-get_conn.df_to_db.load_df(df).merge_data(
-    target_table="human",
-    match_condition=['ItemID'],
-    dbms_type='sqlite',
-)
-
-get_conn.db_to_db.copy_source_db(sql_db3, 'human').merge_data(
-    target_table="human",
-    match_condition=['ItemID'],
-    dbms_type='sqlite',
-)
