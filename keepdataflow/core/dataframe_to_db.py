@@ -42,20 +42,51 @@ python_sql_drivers_to_db_abbreviations = {
 
 
 def generate_database_connection(database_url: str, py_database_module: Any) -> Any:
+    """
+    Generates a database connection.
+
+    Args:
+        database_url (str): The URL of the database.
+        py_database_module (Any): The database module to use, e.g., psycopg2, sqlite3, etc.
+
+    Returns:
+        Any: The database connection object.
+    """
     db_url = database_url
     connection = py_database_module.connect(db_url)
     return connection
 
 
 class DataframeToDatabase:
-    def __init__(self, database_url: str) -> None:
+    def __init__(self, database_url: str, db_engine: Optional[Any] = None, session: Optional[Any] = None) -> None:
+        """
+        Initializes the DataframeToDatabase instance.
+
+        Args:
+            database_url (str): The URL of the database.
+            db_engine (Optional[Any]): The database engine instance. Default is None.
+            session (Optional[Any]): The session instance. Default is None.
+        """
         self.database_url = database_url
-        self.db_engine = create_engine(self.database_url)
-        self.Session = sessionmaker(bind=self.db_engine)
+        self.db_engine = create_engine(self.database_url) if db_engine is None else db_engine
+        self.Session = sessionmaker(bind=self.db_engine) if session is None else session
+        self.source_dataframe: Optional[DataFrame] = None
+
+    def load_df(self, source_dataframe: Any) -> 'DataframeToDatabase':
+        """
+        Loads the source DataFrame into the instance.
+
+        Args:
+            source_dataframe (DataFrame): The source DataFrame.
+
+        Returns:
+            DataframeToDatabase: The instance with the loaded DataFrame.
+        """
+        self.source_dataframe = source_dataframe
+        return self
 
     def refresh_data(
         self,
-        source_dataframe: Any,
         target_table: str,
         database_module: Any,
         target_schema: Optional[str] = None,
@@ -63,19 +94,23 @@ class DataframeToDatabase:
         select_column: Optional[List[str]] = None,
         temp_type: Optional[str] = None,
     ) -> None:
-        """Refreshes data in a target table by truncating and reloading from a source DataFrame.
+        """
+        Refreshes data in a target table by truncating and reloading from a source DataFrame.
 
         Args:
-            source_dataframe (DataFrame): The source data.
             target_table (str): The target table name.
             database_module (Any): The database module to use, e.g., psycopg2, sqlite3, etc.
             target_schema (Optional[str]): The target schema, if applicable. Default is None.
             batch_size (int): The batch size for inserting data. Default is 1000.
             select_column (Optional[List[str]]): List of columns to select. Default is None.
             temp_type (Optional[str]): Temporary table type, if applicable. Default is None.
-        Return:
+
+        Returns:
             None
         """
+        if self.source_dataframe is None:
+            raise ValueError("Source DataFrame is not loaded. Please load the DataFrame using `load_df` method.")
+
         truncate_table = f"DELETE FROM {target_table}"
 
         connection = generate_database_connection(database_url=self.database_url, py_database_module=database_module)
@@ -85,8 +120,8 @@ class DataframeToDatabase:
         try:
             cursor.execute(truncate_table)
 
-            for start in range(0, len(source_dataframe), batch_size):
-                batch_data = source_dataframe[start : start + batch_size]
+            for start in range(0, len(self.source_dataframe), batch_size):
+                batch_data = self.source_dataframe[start : start + batch_size]
                 insert_statement = load_df.set_df(batch_data).sql_insert(
                     column_select=select_column, temp_type=temp_type
                 )
@@ -104,7 +139,6 @@ class DataframeToDatabase:
 
     def merge_data(
         self,
-        source_dataframe: Any,
         target_table: str,
         dbms_type: str,
         match_condition: List[str],
@@ -112,10 +146,10 @@ class DataframeToDatabase:
         target_schema: Optional[str] = None,
         batch_size: int = 1000,
     ) -> None:
-        """Merges data from a source DataFrame into a target table.
+        """
+        Merges data from a source DataFrame into a target table.
 
         Args:
-            source_dataframe (DataFrame): The source data.
             target_table (str): The target table name.
             dbms_type (str): The type of the database management system (e.g., 'mssql').
             match_condition (List[str]): List of conditions to match records.
@@ -123,9 +157,12 @@ class DataframeToDatabase:
             target_schema (Optional[str]): The target schema, if applicable. Default is None.
             batch_size (int): The batch size for inserting data. Default is 1000.
 
-        Return:
+        Returns:
             None
         """
+        if self.source_dataframe is None:
+            raise ValueError("Source DataFrame is not loaded. Please load the DataFrame using `load_df` method.")
+
         uid = "".join(random.choices(string.ascii_lowercase, k=4))
         temp_name = f"_source_{target_table}_{uid}"
 
@@ -151,13 +188,20 @@ class DataframeToDatabase:
                     constraint_columns = primary_key_list['constrained_columns']
                 else:
                     constraint_columns.extend(primary_key_list['constrained_columns'])
+                    constraint_columns = list(set(constraint_columns))
+
+                if match_condition is None:
+                    match_condition = primary_key_list['constrained_columns']
+                else:
+                    match_condition.extend(primary_key_list['constrained_columns'])
+                    match_condition = list(set(match_condition))
 
                 create_temp_table = text(temp_table)
                 session.execute(create_temp_table)
                 print("Temp table create complete")
 
-                for start in range(0, len(source_dataframe), batch_size):
-                    batch_data = source_dataframe[start : start + batch_size]
+                for start in range(0, len(self.source_dataframe), batch_size):
+                    batch_data = self.source_dataframe[start : start + batch_size]
                     insert_temp = FromDataframe(
                         target_table=temp_target_name, target_schema=None, dataframe=batch_data
                     ).insert()
@@ -167,7 +211,7 @@ class DataframeToDatabase:
                 print("Temp table load complete")
 
                 merge_sql = FromDataframe(
-                    target_table=target_table, target_schema=target_schema, dataframe=source_dataframe
+                    target_table=target_table, target_schema=target_schema, dataframe=self.source_dataframe
                 ).upsert(
                     source_table=temp_target_name,
                     match_condition=match_condition,
