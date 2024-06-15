@@ -139,7 +139,6 @@ class DataframeToDatabase:
     def merge_data(
         self,
         target_table: str,
-        dbms_type: str,
         match_condition: List[str],
         constraint_columns: Optional[List[str]] = None,
         target_schema: Optional[str] = None,
@@ -165,10 +164,10 @@ class DataframeToDatabase:
         uid = "".join(random.choices(string.ascii_lowercase, k=4))
         temp_name = f"_source_{target_table}_{uid}"
 
-        if dbms_type == 'mssql':
+        dbms_dialect = self.db_engine.dialect.name
+
+        if dbms_dialect == 'mssql':
             temp_target_name = f'##{temp_name}'
-        elif dbms_type == 'mssql_local':
-            temp_target_name = f'#{temp_name}'
         else:
             temp_target_name = temp_name
 
@@ -176,7 +175,7 @@ class DataframeToDatabase:
 
         source_table, temp_table = CopyDDl(
             database_url=self.database_url, local_table_name=target_table, local_schema_name=target_schema
-        ).create_ddl(new_table_name=temp_name, temp_dll_output=dbms_type, drop_primary_key='Y')
+        ).create_ddl(new_table_name=temp_name, temp_dll_output=dbms_dialect, drop_primary_key='Y')
 
         with self.Session() as session:
             try:
@@ -209,12 +208,14 @@ class DataframeToDatabase:
                     session.execute(insert_sql)
                 print("Temp table load complete")
 
+                dbms_dialect = self.db_engine.dialect.name
+
                 merge_sql = FromDataframe(
                     target_table=target_table, target_schema=target_schema, dataframe=self.source_dataframe
                 ).upsert(
                     source_table=temp_target_name,
                     match_condition=match_condition,
-                    dbms_output=dbms_type,
+                    dbms_output=dbms_dialect,
                     constraint_columns=constraint_columns,
                 )
                 upsert_statement = text(merge_sql)

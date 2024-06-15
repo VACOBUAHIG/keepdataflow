@@ -29,7 +29,6 @@ class TestMergeDataFromDataFrame(unittest.TestCase):
         self.database_connection.merge_data(
             target_table="human",
             match_condition=['ItemID'],
-            dbms_type='sqlite',
         )
         # Here, you would add assertions to check the effects of the merge
         # For example, you can check if the data was correctly merged into the target table
@@ -41,7 +40,6 @@ class TestMergeDataFromDataFrame(unittest.TestCase):
         self.database_connection.merge_data(
             target_table="human",
             match_condition=['ItemID'],
-            dbms_type='sqlite',
         )
         # Add assertions to check the effects of the merge
 
