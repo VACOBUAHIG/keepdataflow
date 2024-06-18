@@ -180,9 +180,6 @@ class DataframeToDatabase:
 
         with self.Session() as session:
             try:
-                inspector = inspect(session.bind)
-                primary_key_list = inspector.get_pk_constraint(target_table, schema=target_schema)
-
                 auto_columns, primary_key_list = get_table_column_info(session, target_table, target_schema)
 
                 constraint_columns = auto_columns if constraint_columns is None else constraint_columns
