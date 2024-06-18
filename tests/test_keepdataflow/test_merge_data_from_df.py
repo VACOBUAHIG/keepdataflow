@@ -9,7 +9,7 @@ class TestMergeDataFromDataFrame(unittest.TestCase):
     def setUp(self) -> None:
         self.sql_db2 = "sqlite:////Users/themobilescientist/Documents/projects/archive/keepitsql/test.db"
         self.data = {
-            "ItemID": ["ID101", "ID102", "ID103", "ID104"],
+            "ItemID": ["101", "102", "103", "104"],
             "ItemName": ["Laptop", "Desk Chair", "USB-C Cable", "Monitor"],
             "Description": [
                 "15-inch laptop with 8GB RAM",
@@ -29,6 +29,16 @@ class TestMergeDataFromDataFrame(unittest.TestCase):
         self.database_connection.merge_data(
             target_table="human",
             match_condition=['ItemID'],
+        )
+        # Here, you would add assertions to check the effects of the merge
+        # For example, you can check if the data was correctly merged into the target table
+        # This can be done by querying the database and verifying the contents of the target table
+
+    def test_merge_data_with_out_match(self) -> None:
+        self.database_connection.df_to_db.load_df(self.df)
+        self.database_connection.merge_data(
+            target_table="human",
+            # match_condition=['ItemID'],
         )
         # Here, you would add assertions to check the effects of the merge
         # For example, you can check if the data was correctly merged into the target table

@@ -9,6 +9,7 @@ from typing import (
 from keepitsql import (
     CopyDDl,
     FromDataframe,
+    get_table_column_info,
 )
 from pandas import DataFrame
 from sqlalchemy import (
@@ -139,9 +140,9 @@ class DataframeToDatabase:
     def merge_data(
         self,
         target_table: str,
-        match_condition: List[str],
-        constraint_columns: Optional[List[str]] = None,
         target_schema: Optional[str] = None,
+        match_condition: Optional[List[str]] = None,
+        constraint_columns: Optional[List[str]] = None,
         batch_size: int = 1000,
     ) -> None:
         """
@@ -150,7 +151,7 @@ class DataframeToDatabase:
         Args:
             target_table (str): The target table name.
             dbms_type (str): The type of the database management system (e.g., 'mssql').
-            match_condition (List[str]): List of conditions to match records.
+            match_condition (List[str]): List of conditions to match records. Default is None.
             constraint_columns (Optional[List[str]]): List of constraint columns. Default is None.
             target_schema (Optional[str]): The target schema, if applicable. Default is None.
             batch_size (int): The batch size for inserting data. Default is 1000.
@@ -164,8 +165,8 @@ class DataframeToDatabase:
         uid = "".join(random.choices(string.ascii_lowercase, k=4))
         temp_name = f"_source_{target_table}_{uid}"
 
-        dbms_dialect = self.db_engine.dialect.name
-
+        # dbms_dialect = self.db_engine.dialect.name
+        dbms_dialect = self.Session().bind.dialect.name
         if dbms_dialect == 'mssql':
             temp_target_name = f'##{temp_name}'
         else:
@@ -175,24 +176,17 @@ class DataframeToDatabase:
 
         source_table, temp_table = CopyDDl(
             database_url=self.database_url, local_table_name=target_table, local_schema_name=target_schema
-        ).create_ddl(new_table_name=temp_name, temp_dll_output=dbms_dialect, drop_primary_key='Y')
+        ).create_ddl(new_table_name=temp_name, temp_dll_output=dbms_dialect, drop_primary_key='N')
 
         with self.Session() as session:
             try:
-                inspector = inspect(self.db_engine)
+                inspector = inspect(session.bind)
                 primary_key_list = inspector.get_pk_constraint(target_table, schema=target_schema)
 
-                if constraint_columns is None:
-                    constraint_columns = primary_key_list['constrained_columns']
-                else:
-                    constraint_columns.extend(primary_key_list['constrained_columns'])
-                    constraint_columns = list(set(constraint_columns))
+                auto_columns, primary_key_list = get_table_column_info(session, target_table, target_schema)
 
-                if match_condition is None:
-                    match_condition = primary_key_list['constrained_columns']
-                else:
-                    match_condition.extend(primary_key_list['constrained_columns'])
-                    match_condition = list(set(match_condition))
+                constraint_columns = auto_columns if constraint_columns is None else constraint_columns
+                match_condition = primary_key_list if match_condition is None else match_condition
 
                 create_temp_table = text(temp_table)
                 session.execute(create_temp_table)
@@ -207,8 +201,6 @@ class DataframeToDatabase:
                     insert_sql = text(insert_temp)
                     session.execute(insert_sql)
                 print("Temp table load complete")
-
-                dbms_dialect = self.db_engine.dialect.name
 
                 merge_sql = FromDataframe(
                     target_table=target_table, target_schema=target_schema, dataframe=self.source_dataframe
