@@ -189,14 +189,22 @@ class DataframeToDatabase:
                 session.execute(create_temp_table)
                 print("Temp table create complete")
 
-                for start in range(0, len(self.source_dataframe), batch_size):
-                    batch_data = self.source_dataframe[start : start + batch_size]
-                    insert_temp = FromDataframe(
-                        target_table=temp_target_name, target_schema=None, dataframe=batch_data
-                    ).insert()
+                # for start in range(0, len(self.source_dataframe), batch_size):
+                #     batch_data = self.source_dataframe[start : start + batch_size]
+                #     insert_temp = FromDataframe(
+                #         target_table=temp_target_name, target_schema=None, dataframe=batch_data
+                #     ).insert()
 
-                    insert_sql = text(insert_temp)
-                    session.execute(insert_sql)
+                #     insert_sql = text(insert_temp)
+                #     session.execute(insert_sql)
+                # print("Temp table load complete")
+
+                insert_temp = FromDataframe(
+                    target_table=temp_target_name, target_schema=None, dataframe=self.source_dataframe
+                ).insert()
+
+                insert_sql = text(insert_temp)
+                session.execute(insert_sql)
                 print("Temp table load complete")
 
                 merge_sql = FromDataframe(
@@ -221,3 +229,12 @@ class DataframeToDatabase:
                 raise
             finally:
                 session.close()
+
+
+uid = "".join(random.choices(string.ascii_lowercase, k=4))
+temp_name = f"_source_{'dd'}_{uid}"
+
+
+temp_target_name = f'##{temp_name}'
+
+print(temp_target_name)
