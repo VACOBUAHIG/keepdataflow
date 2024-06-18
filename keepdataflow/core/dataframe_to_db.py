@@ -188,23 +188,28 @@ class DataframeToDatabase:
                 create_temp_table = text(temp_table)
                 session.execute(create_temp_table)
                 print("Temp table create complete")
+                connection = session.connection()
+                # self.source_dataframe.to_sql(temp_target_name, session, if_exists='replace')
+                self.source_dataframe.to_sql(temp_target_name, con=self.db_engine, if_exists='replace', index=False)
 
-                # for start in range(0, len(self.source_dataframe), batch_size):
-                #     batch_data = self.source_dataframe[start : start + batch_size]
-                #     insert_temp = FromDataframe(
-                #         target_table=temp_target_name, target_schema=None, dataframe=batch_data
-                #     ).insert()
+                for start in range(0, len(self.source_dataframe), batch_size):
+                    batch_data = self.source_dataframe[start : start + batch_size]
+                    insert_temp = FromDataframe(
+                        target_table=temp_target_name, target_schema=None, dataframe=batch_data
+                    ).insert()
 
-                #     insert_sql = text(insert_temp)
-                #     session.execute(insert_sql)
-                # print("Temp table load complete")
+                    print(insert_temp)
 
-                insert_temp = FromDataframe(
-                    target_table=temp_target_name, target_schema=None, dataframe=self.source_dataframe
-                ).insert()
+                    # insert_sql = text(insert_temp)
+                    # session.execute(insert_sql)
+                print("Temp table load complete")
 
-                insert_sql = text(insert_temp)
-                session.execute(insert_sql)
+                # insert_temp = FromDataframe(
+                #     target_table=temp_target_name, target_schema=None, dataframe=self.source_dataframe
+                # ).insert()
+
+                # insert_sql = text(insert_temp)
+                # session.execute(insert_sql)
                 print("Temp table load complete")
 
                 merge_sql = FromDataframe(
