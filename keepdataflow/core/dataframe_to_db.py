@@ -190,18 +190,26 @@ class DataframeToDatabase:
                 print("Temp table create complete")
                 connection = session.connection()
                 # self.source_dataframe.to_sql(temp_target_name, session, if_exists='replace')
-                self.source_dataframe.to_sql(temp_target_name, con=self.db_engine, if_exists='replace', index=False)
+                # self.source_dataframe.to_sql(temp_target_name, con=self.db_engine, if_exists='replace', index=False)
+
+                insert_conn = FromDataframe(
+                    target_table=temp_target_name, target_schema=None, dataframe=self.source_dataframe
+                )
+                insert_sql = insert_conn.insert()
 
                 for start in range(0, len(self.source_dataframe), batch_size):
                     batch_data = self.source_dataframe[start : start + batch_size]
-                    insert_temp = FromDataframe(
-                        target_table=temp_target_name, target_schema=None, dataframe=batch_data
-                    ).insert()
 
-                    print(insert_temp)
+                    params_list = [
+                        FromDataframe(
+                            target_table=temp_target_name, target_schema=None, dataframe=batch_data
+                        ).get_params(row)
+                        for _, row in batch_data.iterrows()
+                    ]
+                    session.execute(text(insert_sql), params_list)
 
                     # insert_sql = text(insert_temp)
-                    # session.execute(insert_sql)
+                    # session.execute(insert_sql,params_list )
                 print("Temp table load complete")
 
                 # insert_temp = FromDataframe(
@@ -212,18 +220,18 @@ class DataframeToDatabase:
                 # session.execute(insert_sql)
                 print("Temp table load complete")
 
-                merge_sql = FromDataframe(
-                    target_table=target_table, target_schema=target_schema, dataframe=self.source_dataframe
-                ).upsert(
-                    source_table=temp_target_name,
-                    match_condition=match_condition,
-                    dbms_output=dbms_dialect,
-                    constraint_columns=constraint_columns,
-                )
-                upsert_statement = text(merge_sql)
+                # # merge_sql = FromDataframe(
+                # #     target_table=target_table, target_schema=target_schema, dataframe=self.source_dataframe
+                # # ).upsert(
+                # #     source_table=temp_target_name,
+                # #     match_condition=match_condition,
+                # #     dbms_output=dbms_dialect,
+                # #     constraint_columns=constraint_columns,
+                # # )
+                # # upsert_statement = text(merge_sql)
 
-                session.execute(upsert_statement)
-                print("Upsert Complete")
+                # # session.execute(upsert_statement)
+                # # print("Upsert Complete")
 
                 session.execute(drop_temp_table)
                 session.commit()
@@ -234,12 +242,3 @@ class DataframeToDatabase:
                 raise
             finally:
                 session.close()
-
-
-uid = "".join(random.choices(string.ascii_lowercase, k=4))
-temp_name = f"_source_{'dd'}_{uid}"
-
-
-temp_target_name = f'##{temp_name}'
-
-print(temp_target_name)
