@@ -206,6 +206,9 @@ class DataframeToDatabase:
                         ).get_params(row)
                         for _, row in batch_data.iterrows()
                     ]
+
+                    data_list = self.source_dataframe.to_dict(orient='records')
+
                     session.execute(text(insert_sql), params_list)
 
                     # insert_sql = text(insert_temp)
@@ -220,18 +223,26 @@ class DataframeToDatabase:
                 # session.execute(insert_sql)
                 print("Temp table load complete")
 
-                # # merge_sql = FromDataframe(
-                # #     target_table=target_table, target_schema=target_schema, dataframe=self.source_dataframe
-                # # ).upsert(
-                # #     source_table=temp_target_name,
-                # #     match_condition=match_condition,
-                # #     dbms_output=dbms_dialect,
-                # #     constraint_columns=constraint_columns,
-                # # )
-                # # upsert_statement = text(merge_sql)
+                merge_sql = FromDataframe(
+                    target_table=target_table, target_schema=target_schema, dataframe=self.source_dataframe
+                ).upsert(
+                    source_table=temp_target_name,
+                    match_condition=match_condition,
+                    dbms_output=dbms_dialect,
+                    constraint_columns=constraint_columns,
+                )
 
-                # # session.execute(upsert_statement)
-                # # print("Upsert Complete")
+                ### ned to review for getting the right statmen
+                upsert_statement = text(merge_sql)
+                if dbms_dialect == 'sqlite':
+                    session.execute(upsert_statement, params_list)
+                else:
+                    session.execute(upsert_statement)
+
+                # upsert_statement = text(merge_sql)
+
+                # session.execute(upsert_statement)
+                print("Upsert Complete")
 
                 session.execute(drop_temp_table)
                 session.commit()
