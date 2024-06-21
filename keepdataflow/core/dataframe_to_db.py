@@ -189,8 +189,6 @@ class DataframeToDatabase:
                 session.execute(create_temp_table)
                 print("Temp table create complete")
                 connection = session.connection()
-                # self.source_dataframe.to_sql(temp_target_name, session, if_exists='replace')
-                # self.source_dataframe.to_sql(temp_target_name, con=self.db_engine, if_exists='replace', index=False)
 
                 insert_conn = FromDataframe(
                     target_table=temp_target_name, target_schema=None, dataframe=self.source_dataframe
@@ -200,27 +198,10 @@ class DataframeToDatabase:
                 for start in range(0, len(self.source_dataframe), batch_size):
                     batch_data = self.source_dataframe[start : start + batch_size]
 
-                    params_list = [
-                        FromDataframe(
-                            target_table=temp_target_name, target_schema=None, dataframe=batch_data
-                        ).get_params(row)
-                        for _, row in batch_data.iterrows()
-                    ]
-
-                    data_list = self.source_dataframe.to_dict(orient='records')
+                    params_list = self.source_dataframe.to_dict(orient='records')
 
                     session.execute(text(insert_sql), params_list)
 
-                    # insert_sql = text(insert_temp)
-                    # session.execute(insert_sql,params_list )
-                print("Temp table load complete")
-
-                # insert_temp = FromDataframe(
-                #     target_table=temp_target_name, target_schema=None, dataframe=self.source_dataframe
-                # ).insert()
-
-                # insert_sql = text(insert_temp)
-                # session.execute(insert_sql)
                 print("Temp table load complete")
 
                 merge_sql = FromDataframe(
@@ -232,16 +213,13 @@ class DataframeToDatabase:
                     constraint_columns=constraint_columns,
                 )
 
-                ### ned to review for getting the right statmen
+                ### Need to review for getting the right statmen
                 upsert_statement = text(merge_sql)
                 if dbms_dialect == 'sqlite':
                     session.execute(upsert_statement, params_list)
                 else:
                     session.execute(upsert_statement)
 
-                # upsert_statement = text(merge_sql)
-
-                # session.execute(upsert_statement)
                 print("Upsert Complete")
 
                 session.execute(drop_temp_table)
