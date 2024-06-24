@@ -204,7 +204,7 @@ class DataframeToDatabase:
                 for start in range(0, len(self.source_dataframe), batch_size):
                     batch_data = self.source_dataframe[start : start + batch_size]
 
-                    params_list = self.source_dataframe.to_dict(orient='records')
+                    params_list = batch_data.to_dict(orient='records')
 
                     session.execute(text(insert_sql), params_list)
 
