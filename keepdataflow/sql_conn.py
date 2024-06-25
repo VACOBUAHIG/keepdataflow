@@ -6,7 +6,10 @@ from sqlalchemy import (
     create_engine,
     text,
 )
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import (
+    Session,
+    sessionmaker,
+)
 
 from keepdataflow.core.database_to_database import DatabaseToDatabase
 from keepdataflow.core.dataframe_to_db import DataframeToDatabase
@@ -47,6 +50,16 @@ class SqlConn:
         self.Session = sessionmaker(bind=self.db_engine)
         self.df_to_db = DataframeToDatabase(self.database_url, self.db_engine, self.Session)
         self.db_to_db = DatabaseToDatabase(self.df_to_db)
+
+    @property
+    def get_session(self) -> Session:
+        """
+        Creates and returns a new SQLAlchemy session.
+
+        Returns:
+            Session: A new SQLAlchemy session.
+        """
+        return self.Session()
 
     def __getattr__(self, name: str) -> Any:
         """

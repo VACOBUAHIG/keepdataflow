@@ -60,6 +60,7 @@ class TestMergeDataFromDataFrame(unittest.TestCase):
             match_condition=['ItemID'],
         )
         # Add assertions to check the effects of the merge
+        # print(self.database_connection.get_session)
 
 
 if __name__ == '__main__':
