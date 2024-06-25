@@ -51,6 +51,14 @@ class TestMergeDataFromDataFrame(unittest.TestCase):
             target_table="human",
             match_condition=['ItemID'],
         )
+
+    def test_databse_to_databsase_copy_with_query(self) -> None:
+        sql_db3 = "sqlite:////Users/themobilescientist/Documents/projects/archive/keepitsql/source_test.db"
+        self.database_connection.db_to_db.copy_source_db(source_db_url=sql_db3, source_query="Select * From human")
+        self.database_connection.merge_data(
+            target_table="human",
+            match_condition=['ItemID'],
+        )
         # Add assertions to check the effects of the merge
 
 
