@@ -181,7 +181,7 @@ class DataframeToDatabase:
         ).create_ddl(new_table_name=temp_name, temp_dll_output=dbms_dialect, drop_primary_key='N')
 
         for column in self.source_dataframe.select_dtypes(include=['float', 'object']):
-            self.source_dataframe[column] = self.source_dataframe[column].apply(lambda x: None if x == "" else x)
+            self.source_dataframe[column] = self.source_dataframe[column].apply(lambda x: 0 if x == "" else x)
 
         with self.Session() as session:
             # self.source_dataframe = read_sql_table_and_convert_types(
