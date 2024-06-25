@@ -181,9 +181,9 @@ class DataframeToDatabase:
         ).create_ddl(new_table_name=temp_name, temp_dll_output=dbms_dialect, drop_primary_key='N')
 
         with self.Session() as session:
-            self.source_dataframe = read_sql_table_and_convert_types(
-                self.source_dataframe, session, table_name=target_table, schema_name=target_schema
-            )
+            # self.source_dataframe = read_sql_table_and_convert_types(
+            #     self.source_dataframe, session, table_name=target_table, schema_name=target_schema
+            # )
 
             try:
                 auto_columns, primary_key_list = get_table_column_info(session, target_table, target_schema)
