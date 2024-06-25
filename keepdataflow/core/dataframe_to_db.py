@@ -180,6 +180,9 @@ class DataframeToDatabase:
             database_url=self.database_url, local_table_name=target_table, local_schema_name=target_schema
         ).create_ddl(new_table_name=temp_name, temp_dll_output=dbms_dialect, drop_primary_key='N')
 
+        for column in self.source_dataframe.select_dtypes(include=['float', 'object']):
+            self.source_dataframe[column] = self.source_dataframe[column].apply(lambda x: None if x == "" else x)
+
         with self.Session() as session:
             # self.source_dataframe = read_sql_table_and_convert_types(
             #     self.source_dataframe, session, table_name=target_table, schema_name=target_schema
