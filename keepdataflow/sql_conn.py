@@ -111,21 +111,3 @@ class SqlConn:
                 return wrapper
             return attr
         raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
-
-
-# Example usage:
-sql_conn_instance = SqlConn('sqlite:////Users/themobilescientist/Documents/projects/archive/keepitsql/test.db')
-
-
-# When you need to use the engine in a multi-threaded context, get the singleton engine:
-def some_task_using_engine():
-    engine = sql_conn_instance._get_engine()
-    with engine.connect() as conn:
-        # Perform operations
-        pass
-
-
-# If using Dask, pass the function that uses the singleton engine:
-import dask
-
-dask.delayed(some_task_using_engine)
