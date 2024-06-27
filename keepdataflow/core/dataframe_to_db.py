@@ -235,6 +235,8 @@ class DataframeToDatabase:
         def execute_merge():
             Session = sessionmaker(bind=engine)
             with Session() as session:
+                test = session.execute(text(f"Select * From {temp_target_name}"))
+                print(test)
                 try:
                     auto_columns, primary_key_list = get_table_column_info(
                         self.database_url, target_table, target_schema
