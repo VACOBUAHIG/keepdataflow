@@ -72,6 +72,7 @@ class SqlConn:
                     SqlConn._engine = create_engine(self.database_url)
         return SqlConn._engine
 
+    @property
     def get_session(self) -> Session:
         """
         Creates and returns a new SQLAlchemy session.
