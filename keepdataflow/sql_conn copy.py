@@ -1,16 +1,11 @@
 import sqlite3
-from threading import Lock
-from typing import (
-    Any,
-    Callable,
-)
+from typing import Any
 
 import pandas as pd
 from sqlalchemy import (
     create_engine,
     text,
 )
-from sqlalchemy.engine import Engine
 from sqlalchemy.orm import (
     Session,
     sessionmaker,
@@ -37,11 +32,8 @@ class SqlConn:
 
     Example usage:
         >>> sql_conn_instance = SqlConn('sqlite:///example.db')
-        >>> session = sql_conn_instance.get_session()
+        >>> session = sql_conn_instance.Session()
     """
-
-    _engine = None
-    _lock = Lock()
 
     def __init__(self, database_url: str) -> None:
         """
@@ -54,24 +46,12 @@ class SqlConn:
             - database_url (str): The URL of the database to initialize a connection.
         """
         self.database_url = database_url
-        self.db_engine = self._get_engine()
+        self.db_engine = create_engine(self.database_url)
         self.Session = sessionmaker(bind=self.db_engine)
         self.df_to_db = DataframeToDatabase(self.database_url, self.db_engine, self.Session)
         self.db_to_db = DatabaseToDatabase(self.df_to_db)
 
-    def _get_engine(self) -> Engine:
-        """
-        Get the singleton database engine instance, creating it if it does not exist.
-
-        Returns:
-            Engine: The SQLAlchemy engine instance.
-        """
-        if SqlConn._engine is None:
-            with SqlConn._lock:
-                if SqlConn._engine is None:  # Double-checked locking
-                    SqlConn._engine = create_engine(self.database_url)
-        return SqlConn._engine
-
+    @property
     def get_session(self) -> Session:
         """
         Creates and returns a new SQLAlchemy session.
@@ -110,21 +90,3 @@ class SqlConn:
                 return wrapper
             return attr
         raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
-
-
-# Example usage:
-sql_conn_instance = SqlConn('sqlite:////Users/themobilescientist/Documents/projects/archive/keepitsql/test.db')
-
-
-# When you need to use the engine in a multi-threaded context, get the singleton engine:
-def some_task_using_engine():
-    engine = sql_conn_instance._get_engine()
-    with engine.connect() as conn:
-        # Perform operations
-        pass
-
-
-# If using Dask, pass the function that uses the singleton engine:
-import dask
-
-dask.delayed(some_task_using_engine)

@@ -6,6 +6,9 @@ from typing import (
     Optional,
 )
 
+# from .conversion import read_sql_table_and_convert_types
+import dask.dataframe as dd
+from dask import delayed
 from keepitsql import (
     CopyDDl,
     FromDataframe,
@@ -20,7 +23,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import sessionmaker
 
-from .conversion import read_sql_table_and_convert_types
+# from dask import delayed, compute
 
 python_sql_drivers_to_db_abbreviations = {
     "psycopg2": "postgresql",
@@ -70,7 +73,7 @@ class DataframeToDatabase:
             session (Optional[Any]): The session instance. Default is None.
         """
         self.database_url = database_url
-        self.db_engine = create_engine(self.database_url) if db_engine is None else db_engine
+        self.db_engine = db_engine
         self.Session = sessionmaker(bind=self.db_engine) if session is None else session
         self.source_dataframe: Optional[DataFrame] = None
 
@@ -145,7 +148,8 @@ class DataframeToDatabase:
         target_schema: Optional[str] = None,
         match_condition: Optional[List[str]] = None,
         constraint_columns: Optional[List[str]] = None,
-        batch_size: int = 1000,
+        # batch_size: int = 1000,
+        partitions: int = 2,
     ) -> None:
         """
         Merges data from a source DataFrame into a target table.
@@ -167,8 +171,12 @@ class DataframeToDatabase:
         uid = "".join(random.choices(string.ascii_lowercase, k=4))
         temp_name = f"_source_{target_table}_{uid}"
 
-        # dbms_dialect = self.db_engine.dialect.name
-        dbms_dialect = self.Session().bind.dialect.name
+        engine = self.db_engine
+        if engine is None:
+            raise ValueError("Database engine is not initialized")
+
+        dbms_dialect = engine.dialect.name
+        # dbms_dialect = self.Session().bind.dialect.name
         if dbms_dialect == 'mssql':
             temp_target_name = f'##{temp_name}'
         else:
@@ -176,67 +184,95 @@ class DataframeToDatabase:
 
         drop_temp_table = text(f"DROP TABLE {temp_target_name}")
 
-        source_table, temp_table = CopyDDl(
-            database_url=self.database_url, local_table_name=target_table, local_schema_name=target_schema
-        ).create_ddl(new_table_name=temp_name, temp_dll_output=dbms_dialect, drop_primary_key='N')
+        ddf = dd.from_pandas(self.source_dataframe, npartitions=partitions)
 
-        for column in self.source_dataframe.select_dtypes(include=['float', 'object']):
-            self.source_dataframe[column] = self.source_dataframe[column].apply(lambda x: 0 if x == "" else x)
-
-        with self.Session() as session:
-            # self.source_dataframe = read_sql_table_and_convert_types(
-            #     self.source_dataframe, session, table_name=target_table, schema_name=target_schema
-            # )
-
+        def create_temp_table() -> None:
             try:
-                auto_columns, primary_key_list = get_table_column_info(session, target_table, target_schema)
-
-                constraint_columns = auto_columns if constraint_columns is None else constraint_columns
-                match_condition = primary_key_list if match_condition is None else match_condition
-
-                create_temp_table = text(temp_table)
-                session.execute(create_temp_table)
-                print("Temp table create complete")
-                connection = session.connection()
-
-                insert_conn = FromDataframe(
-                    target_table=temp_target_name, target_schema=None, dataframe=self.source_dataframe
-                )
-                insert_sql = insert_conn.insert()
-
-                for start in range(0, len(self.source_dataframe), batch_size):
-                    batch_data = self.source_dataframe[start : start + batch_size]
-
-                    params_list = batch_data.to_dict(orient='records')
-
-                    session.execute(text(insert_sql), params_list)
-
-                print("Temp table load complete")
-
-                merge_sql = FromDataframe(
-                    target_table=target_table, target_schema=target_schema, dataframe=self.source_dataframe
-                ).upsert(
-                    source_table=temp_target_name,
-                    match_condition=match_condition,
-                    dbms_output=dbms_dialect,
-                    constraint_columns=constraint_columns,
-                )
-
-                ### Need to review for getting the right statmen
-                upsert_statement = text(merge_sql)
-                if dbms_dialect == 'sqlite':
-                    session.execute(upsert_statement, params_list)
-                else:
-                    session.execute(upsert_statement)
-
-                print("Upsert Complete")
-
-                session.execute(drop_temp_table)
-                session.commit()
-                print("Insert Complete")
+                with engine.connect() as conn:
+                    # with self.db_engine as session:
+                    source_table, temp_table = CopyDDl(
+                        database_url=self.database_url, local_table_name=target_table, local_schema_name=target_schema
+                    ).create_ddl(new_table_name=temp_target_name, temp_dll_output=dbms_dialect, drop_primary_key='N')
+                    create_temp_table = text(temp_table)
+                    conn.execute(create_temp_table)
+                conn.commit()
             except SQLAlchemyError as e:
-                session.rollback()
-                print(f"An error occurred: {e}")
+                print(f"An error occurred while creating the temporary table: {e}")
                 raise
-            finally:
-                session.close()
+
+        # Define function for batch insertion
+        def execute_batch_insertion(batch_df: Any) -> None:
+            """
+            Execute batch insertion of a dataframe into a temporary table.
+
+            Args:
+                batch_df (Any): The dataframe to be inserted. It is expected to be a pandas DataFrame.
+
+            Raises:
+                SQLAlchemyError: If an error occurs during the insertion process.
+            """
+            Session = sessionmaker(bind=engine)
+            with Session() as session:
+                params_list = batch_df.to_dict(orient='records')
+                insert_conn = FromDataframe(target_table=temp_target_name, target_schema=None, dataframe=batch_df)
+                print(insert_conn)
+                insert_sql = insert_conn.insert()
+                session.execute(text(insert_sql), params_list)
+                try:
+                    print(insert_sql)
+                    session.execute(text(insert_sql), params_list)
+                    session.commit()
+                except SQLAlchemyError as e:
+                    session.rollback()
+                    print(f"An error occurred during batch insertion: {e}")
+                    raise
+
+        def batch_insert():
+            delayed_execute_batch_insertion = delayed(execute_batch_insertion)
+            result = ddf.map_partitions(delayed_execute_batch_insertion, db_url=self.database_url)
+            result.compute()
+
+        def execute_merge():
+            Session = sessionmaker(bind=engine)
+            with Session() as session:
+                try:
+                    auto_columns, primary_key_list = get_table_column_info(
+                        self.database_url, target_table, target_schema
+                    )
+
+                    constraint_list = auto_columns if constraint_columns is None else constraint_columns
+                    match_list = primary_key_list if match_condition is None else match_condition
+
+                    # Perform the final merge operation
+                    merge_sql = FromDataframe(
+                        target_table=target_table, target_schema=target_schema, dataframe=self.source_dataframe
+                    ).upsert(
+                        source_table=temp_target_name,
+                        match_condition=match_list,
+                        dbms_output=dbms_dialect,
+                        constraint_columns=constraint_list,
+                    )
+                    upsert_statement = text(merge_sql)
+                    if dbms_dialect == 'sqlite':
+                        params_list = self.source_dataframe.to_dict(orient='records')
+                        session.execute(upsert_statement, params_list)
+
+                    else:
+                        session.execute(upsert_statement)
+
+                    session.execute(drop_temp_table)
+                    session.commit()
+                except SQLAlchemyError as e:
+                    session.rollback()
+                    print(f"An error occurred during batch insertion: {e}")
+                    raise
+                finally:
+                    session.close()
+
+        ### Execution Order ###
+        # 1 Create temp table
+        create_temp_table()
+        # Load Into Temp
+        batch_insert()
+        # Execute Merge
+        execute_merge()

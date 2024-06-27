@@ -17,6 +17,7 @@ data-engineer-utils = {git = "https://github.com/geob3d/data_engineer_utils.git"
 pyodbc = "^5.1.0"
 python-dotenv = "^1.0.1"
 pymssql = "^2.3.0"
+dask = {extras = ["complete"], version = "^2024.6.2"}
 
 
 [tool.poetry.group.test.dependencies]
