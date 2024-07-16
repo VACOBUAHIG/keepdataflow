@@ -87,7 +87,9 @@ class DataframeToDatabase:
         Returns:
             DataframeToDatabase: The instance with the loaded DataFrame.
         """
+
         self.source_dataframe = source_dataframe
+        print(self.source_dataframe)
         return self
 
     def refresh_data(
