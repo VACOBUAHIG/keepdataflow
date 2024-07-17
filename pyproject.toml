@@ -19,6 +19,7 @@ python-dotenv = "^1.0.1"
 pymssql = "^2.3.0"
 dask = {extras = ["complete"], version = "^2024.6.2"}
 polars = "^0.20.31"
+connectorx = "^0.3.3"
 
 
 [tool.poetry.group.test.dependencies]

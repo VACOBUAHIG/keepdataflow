@@ -1,3 +1,9 @@
+from typing import (
+    Any,
+    Optional,
+    Union,
+)
+
 from keepdataflow._database_engine import DatabaseEngine
 from keepdataflow.database_operations import DatabaseOperations
 
@@ -29,3 +35,12 @@ class SqlConn:
 
     def from_dataframe(self, dataframe):
         return self.operations.load_dataframe(dataframe)
+
+    def from_database(
+        self,
+        source_db_url: str,
+        source_table_name: Optional[str] = None,  # Fully qualified
+        source_query: Optional[Union[str, bytes]] = None,
+        chunk_size: Optional[int] = None,
+    ):
+        return self.operations.copy_source_db(source_db_url, source_table_name, source_query, chunk_size)

@@ -211,6 +211,28 @@ class DatabaseOperations:
         self.dataframe = dataframe
         return self
 
+    def copy_source_db(
+        self,
+        source_db_url: str,
+        source_table_name: Optional[str] = None,
+        source_query: Optional[Union[str, bytes]] = None,
+        chunk_size: Optional[int] = None,
+    ) -> 'DatabaseOperations':
+        source_engine = create_engine(source_db_url)
+
+        if not any([source_table_name, source_query]):
+            raise ValueError("Either source_table_name or source_query must be provided.")
+
+        query = f"SELECT * FROM {source_table_name}"
+        sql_query = source_query if source_query is not None else query
+
+        with source_engine.connect() as connection:
+            self.dataframe = pl.read_database_uri(
+                sql_query, source_db_url, engine="connectorx", partition_range=chunk_size
+            )
+
+        return self
+
     def db_insert(
         self,
         target_table: str,
