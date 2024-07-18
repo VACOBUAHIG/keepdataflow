@@ -42,5 +42,6 @@ class SqlConn:
         source_table_name: Optional[str] = None,  # Fully qualified
         source_query: Optional[Union[str, bytes]] = None,
         chunk_size: Optional[int] = None,
+        **kwargs,
     ):
         return self.operations.copy_source_db(source_db_url, source_table_name, source_query, chunk_size)

@@ -217,6 +217,7 @@ class DatabaseOperations:
         source_table_name: Optional[str] = None,
         source_query: Optional[Union[str, bytes]] = None,
         chunk_size: Optional[int] = None,
+        **kwargs,
     ) -> 'DatabaseOperations':
         source_engine = create_engine(source_db_url)
 
@@ -241,6 +242,7 @@ class DatabaseOperations:
         partition_by: Optional[Union[str, List[str]]] = None,
         full_refresh: str = 'N',
         chunk_size: int = 5000,
+        **kwargs,
     ) -> None:
         """
         Insert data from the DataFrame into the target table.
@@ -282,6 +284,7 @@ class DatabaseOperations:
         constraint_columns: Optional[List[str]] = None,
         partition_by: Optional[str | list] = None,
         chunk_size: int = 5000,
+        **kwargs,
     ) -> None:
         with self.database_engine as session:
             auto_columns, primary_key_list = get_table_column_info(session, target_table, target_schema)
