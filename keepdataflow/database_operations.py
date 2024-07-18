@@ -238,6 +238,11 @@ class DatabaseOperations:
         ValueError: If neither source_table_name nor source_query is provided.
         """
         source_engine = create_engine(source_db_url)
+        # Example connection string for a PostgreSQL database
+
+        # Render the URL as a string with the password visible
+        url_with_password = source_engine.url.render_as_string(hide_password=False)
+        # print(url_with_password)
 
         if not any([source_table_name, source_query]):
             raise ValueError("Either source_table_name or source_query must be provided.")
@@ -264,10 +269,10 @@ class DatabaseOperations:
         query = f"SELECT * FROM {table_name}"
         sql_query = get_sql_query(source_query) if source_query is not None else query
 
-        with source_engine.connect() as connection:
-            self.dataframe = pl.read_database_uri(
-                sql_query, source_db_url, engine="connectorx", partition_range=chunk_size
-            )
+        # with source_engine.connect() as connection:
+        self.dataframe = pl.read_database_uri(
+            sql_query, url_with_password, engine="connectorx", partition_range=chunk_size
+        )
 
         return self
 
