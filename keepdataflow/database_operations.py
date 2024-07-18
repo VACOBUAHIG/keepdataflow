@@ -1,3 +1,4 @@
+import os
 import random
 import string
 from concurrent.futures import (
@@ -216,16 +217,52 @@ class DatabaseOperations:
         source_db_url: str,
         source_table_name: Optional[str] = None,
         source_query: Optional[Union[str, bytes]] = None,
+        source_schema_name: Optional[str] = None,
         chunk_size: Optional[int] = None,
         **kwargs,
     ) -> 'DatabaseOperations':
+        """
+        Copy data from a source database to a DataFrame.
+
+        Parameters:
+        source_db_url (str): The URL of the source database.
+        source_table_name (Optional[str]): The name of the source table. Default is None.
+        source_query (Optional[Union[str, bytes]]): The SQL query or the path to the SQL query file. Default is None.
+        chunk_size (Optional[int]): The chunk size for partitioning the data. Default is None.
+        **kwargs: Additional keyword arguments.
+
+        Returns:
+        DatabaseOperations: The updated instance of the DatabaseOperations class.
+
+        Raises:
+        ValueError: If neither source_table_name nor source_query is provided.
+        """
         source_engine = create_engine(source_db_url)
 
         if not any([source_table_name, source_query]):
             raise ValueError("Either source_table_name or source_query must be provided.")
 
-        query = f"SELECT * FROM {source_table_name}"
-        sql_query = source_query if source_query is not None else query
+        def get_sql_query(sql_input: Union[str, bytes]) -> str:
+            """
+            Get the SQL query from the input.
+
+            Parameters:
+            sql_input (Union[str, bytes]): The SQL query or the path to the SQL query file.
+
+            Returns:
+            str: The SQL query.
+            """
+            if os.path.isfile(sql_input) and sql_input.endswith('.sql'):
+                with open(sql_input, 'r') as file:
+                    sql_query = file.read()
+            else:
+                sql_query = sql_input
+
+            return sql_query
+
+        table_name = table_name_formattter(source_table_name, source_schema_name)
+        query = f"SELECT * FROM {table_name}"
+        sql_query = get_sql_query(source_query) if source_query is not None else query
 
         with source_engine.connect() as connection:
             self.dataframe = pl.read_database_uri(
