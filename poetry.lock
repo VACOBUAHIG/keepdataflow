@@ -706,7 +706,7 @@ sqlalchemy = "^2.0.25"
 type = "git"
 url = "https://github.com/geob3d/keepitsql.git"
 reference = "HEAD"
-resolved_reference = "f9891d053f71345f42e50f948ad7d64106eedda7"
+resolved_reference = "352f71acf2319b0a159ada5773bac2576ec9182e"
 
 [[package]]
 name = "locket"
