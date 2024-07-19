@@ -157,8 +157,9 @@ class DatabaseOperations:
             temp_table_header = create_temp_table_headers.get(dbms_dialect)
 
             ddl = str(CreateTable(table).compile(session.bind)).replace('"', '')
-            temp_ddl = ddl.replace("CREATE TABLE ", temp_table_header)  # spacing is important for sql server
-
+            temp_ddl = (
+                ddl.replace("CREATE TABLE ", temp_table_header).replace(']', '').replace('[', '')
+            )  # spacing is important for sql server
             return str(temp_ddl)
 
     def insert_data_partition(
