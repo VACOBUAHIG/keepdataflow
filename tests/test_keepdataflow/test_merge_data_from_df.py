@@ -54,9 +54,6 @@ class TestMergeDataFromDataFrame(unittest.TestCase):
     # def test_load_dataframe(self):
     #     self.database_connection.load_dataframe(self.pl_df)
 
-    def test_load_dataframe_insert(self):
-        self.database_connection.from_dataframe(self.pl_df).db_insert("human", full_refresh='Y')
-
     def test_load_from_dataframe_merge(self):
         self.database_connection.from_dataframe(self.pl_df_50k).db_merge("human")
 
@@ -65,6 +62,9 @@ class TestMergeDataFromDataFrame(unittest.TestCase):
 
     def test_load_from_database_merge_with_query(self):
         self.database_connection.from_database(self.sql_db2, source_query='Select * from human').db_merge("human")
+
+    def test_load_dataframe_insert(self):
+        self.database_connection.from_dataframe(self.pl_df).db_insert("human", full_refresh='Y')
 
     # def test_load_df(self) -> None:
     #     self.database_connection.df_to_db.load_df(self.pl_df)

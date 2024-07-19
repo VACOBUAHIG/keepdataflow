@@ -111,6 +111,7 @@ class DatabaseOperations:
 
     def create_temp_table(
         self,
+        session: Any,
         table_name: str,
         source_schema: Optional[str] = None,
         new_table_name: Optional[str] = None,
@@ -120,7 +121,7 @@ class DatabaseOperations:
         Create a temporary table in the database.
         """
         metadata = MetaData()
-        with self.database_engine as session:
+        with session:
             inspector = inspect(session.bind)
             columns_info = inspector.get_columns(table_name, schema=source_schema)
             pk_info = inspector.get_pk_constraint(table_name, schema=source_schema)
@@ -340,7 +341,10 @@ class DatabaseOperations:
 
             # Step 1: Create temp table
             gen_temp_table_name = self.generate_temp_table_name(target_table)
-            temp_table = self.create_temp_table(target_table, target_schema, new_table_name=gen_temp_table_name)
+            temp_table = self.create_temp_table(
+                session, target_table, target_schema, new_table_name=gen_temp_table_name
+            )
+            print(temp_table)
             session.execute(text(temp_table))
 
             # Step 2: Insert into temp table
