@@ -348,7 +348,7 @@ class DatabaseOperations:
 
             # Step 3: Load Temp table into Target Table
             params = {
-                'table_name': target_table,
+                'table_name': table_name_formattter(target_table, target_schema),
                 'partition': partition,  # replace with partiont parameter
                 'match_condition': match_list,
                 'constraint_columns': constraint_list,
