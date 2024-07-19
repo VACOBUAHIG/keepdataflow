@@ -192,7 +192,9 @@ class DatabaseOperations:
         source_table: str,
         **kwargs: Any,
     ) -> None:
-        merge_sql = FromDataframe(dataframe=self.dataframe).dbms_merge_generator(
+        merge_conn = FromDataframe(dataframe=self.dataframe)
+
+        merge_sql = merge_conn.dbms_merge_generator(
             table_name=table_name,
             match_condition=match_condition,
             dbms=dbms,
