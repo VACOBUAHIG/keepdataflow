@@ -347,6 +347,8 @@ class DatabaseOperations:
             print(temp_table)
             session.execute(text(temp_table))
 
+            # format for mssql
+            gen_temp_table_name = f'##{gen_temp_table_name}' if dbms == 'mssql' else gen_temp_table_name
             # Step 2: Insert into temp table
             self.db_insert(
                 session=session, target_table=gen_temp_table_name, partition_by=partition_by, chunk_size=chunk_size
