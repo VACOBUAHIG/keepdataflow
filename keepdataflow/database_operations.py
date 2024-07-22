@@ -1,5 +1,6 @@
 import os
 import random
+import re
 import string
 from concurrent.futures import (
     ProcessPoolExecutor,
@@ -161,6 +162,9 @@ class DatabaseOperations:
             temp_ddl = (
                 ddl.replace("CREATE TABLE ", temp_table_header).replace(']', '').replace('[', '')
             )  # spacing is important for sql server
+            pattern = r'IDENTITY\(\d+,\d+\)'
+            temp_ddl = re.sub(pattern, '', temp_ddl)
+
             return str(temp_ddl)
 
     def insert_data_partition(
