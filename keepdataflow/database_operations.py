@@ -162,7 +162,7 @@ class DatabaseOperations:
             temp_ddl = (
                 ddl.replace("CREATE TABLE ", temp_table_header).replace(']', '').replace('[', '')
             )  # spacing is important for sql server
-            pattern = r'IDENTITY\(\d+,\d+\)'
+            pattern = r'IDENTITY(\(\d+,\d+\))?'
             temp_ddl = re.sub(pattern, '', temp_ddl)
 
             return str(temp_ddl)
