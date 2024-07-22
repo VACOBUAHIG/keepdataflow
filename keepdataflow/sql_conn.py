@@ -40,8 +40,11 @@ class SqlConn:
         self,
         source_db_url: str,
         source_table_name: Optional[str] = None,  # Fully qualified
+        source_schema_name: Optional[str] = None,
         source_query: Optional[Union[str, bytes]] = None,
         chunk_size: Optional[int] = None,
         **kwargs,
     ):
-        return self.operations.copy_source_db(source_db_url, source_table_name, source_query, chunk_size)
+        return self.operations.copy_source_db(
+            source_db_url, source_table_name, source_query, source_schema_name, chunk_size
+        )

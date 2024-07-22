@@ -53,6 +53,8 @@ class TestMergeDataFromDataFrame(unittest.TestCase):
 
     # def test_load_dataframe(self):
     #     self.database_connection.load_dataframe(self.pl_df)
+    def test_load_db_op(self):
+        self.database_connection.database_engine._get_engine()
 
     def test_load_from_dataframe_merge(self):
         self.database_connection.from_dataframe(self.pl_df_50k).db_merge("human")
