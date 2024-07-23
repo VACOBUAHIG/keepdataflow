@@ -348,15 +348,62 @@ class DatabaseOperations:
             temp_table = self.create_temp_table(
                 session, target_table, target_schema, new_table_name=gen_temp_table_name
             )
-            print(temp_table)
+
             session.execute(text(temp_table))
 
             # format for mssql
             gen_temp_table_name = f'##{gen_temp_table_name}' if dbms == 'mssql' else gen_temp_table_name
             # Step 2: Insert into temp table
+            print(f"Begin {gen_temp_table_name} insert")
             self.db_insert(
                 session=session, target_table=gen_temp_table_name, partition_by=partition_by, chunk_size=chunk_size
             )
+            # Step 3: Load Temp table into Target Table
+            params = {
+                'table_name': table_name_formattter(target_table, target_schema),
+                'partition': partition,  # replace with partiont parameter
+                'match_condition': match_list,
+                'constraint_columns': constraint_list,
+                'dbms': dbms,
+                'source_table': gen_temp_table_name,
+            }
+            self.upsert_data_partition(session=session, **params)
+
+    def db_merge_with_polars(
+        self,
+        target_table: str,
+        target_schema: Optional[str] = None,
+        match_condition: Optional[List[str]] = None,
+        constraint_columns: Optional[List[str]] = None,
+        partition_by: Optional[str | list] = None,
+        chunk_size: int = 5000,
+        **kwargs,
+    ) -> None:
+        with self.database_engine as session:
+            auto_columns, primary_key_list = get_table_column_info(session, target_table, target_schema)
+            partition = partition_dataframe(self.dataframe, chunk_size=chunk_size, column_name=partition_by)
+            constraint_list = auto_columns if constraint_columns is None else constraint_columns
+            match_list = primary_key_list if match_condition is None else match_condition
+            dbms = self.database_engine.get_dbms_dialect()
+
+            # Step 1: Create temp table
+            gen_temp_table_name = self.generate_temp_table_name(target_table)
+            temp_table = self.create_temp_table(
+                session, target_table, target_schema, new_table_name=gen_temp_table_name
+            )
+
+            session.execute(text(temp_table))
+
+            # format for mssql
+            gen_temp_table_name = f'##{gen_temp_table_name}' if dbms == 'mssql' else gen_temp_table_name
+            # Step 2: Insert into temp table
+            print(f"Begin {gen_temp_table_name} insert")
+            for p in partition:
+                p.write_database(table_name=gen_temp_table_name, connection=session.bind, if_table_exists="append")
+
+            # self.db_insert(
+            #     session=session, target_table=gen_temp_table_name, partition_by=partition_by, chunk_size=chunk_size
+            # )
 
             # Step 3: Load Temp table into Target Table
             params = {
