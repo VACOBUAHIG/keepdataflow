@@ -318,8 +318,10 @@ class DatabaseOperations:
 
         def insert_partition_with_session(part: pl.DataFrame) -> None:
             try:
-                db_session = session
-                self.insert_data_partition(part, db_session, target_table, target_schema)
+                with self.database_engine as session_conn:
+                    # This secion might be bad. Your putting a session within a session?
+                    db_session = session if session is not None else session_conn
+                    self.insert_data_partition(part, db_session, target_table, target_schema)
             except Exception as e:
                 print(f"An error occurred in insert_partition_with_session: {e}")
 
