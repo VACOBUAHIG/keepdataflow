@@ -1,36 +1,46 @@
-"""
-Example Main File
+from data_transfer import DatabaseDataTransfer
 
-This is an example main file for your library and there is a corresponding test
-at `tests/test_main.py`. You should edit or remove both of these files as re-
-quired for your project.
-"""
-from __future__ import annotations
-
-from beartype import beartype
-from loguru import logger
+from sqlalchemy import create_engine
 
 
-@beartype
-def get_hello(name: str) -> str:
-    """Get A Hello String.
+sourceServerAddress = "VHAAUSDB2.VHA.MED.VA.GOV"
+sourceDatabaseName = "CapAssets_Prod"
 
-    >>> get_hello('world')
-    'Hello, world!'
-    >>> get_hello('Mike')
-    'Hello, Mike!'
-    >>> get_hello(42)
-    Traceback (most recent call last):
-      ...
-    beartype.roar.BeartypeCallHintParamViolation: ...
+destinationserverAddress = "VHACDWA01.VHA.MED.VA.GOV"
+destinationDatabaseName = "HEFP_EHRMSPCAM"
 
-    >>> get_hello()
-    Traceback (most recent call last):
-      ...
-    TypeError: get_hello() missing 1 required positional argument: 'name'
-    """
-    return f'Hello, {name}!'
+source_engine = create_engine(
+    f"mssql+pyodbc://{sourceServerAddress}/{sourceDatabaseName}?driver=ODBC+Driver+17+for+SQL+Server"
+)
+destination_engine = create_engine(
+    f"mssql+pyodbc://{destinationserverAddress}/{destinationDatabaseName}?driver=ODBC+Driver+17+for+SQL+Server"
+)
 
 
-if __name__ == '__main__':
-    logger.info(get_hello('George Buahin'))
+# from sqlalchemy.engine.url import make_url
+
+
+# url = make_url(source_engine)
+
+# dialect = url.get_dialect().name
+# print(dialect)
+
+data_transfer = DatabaseDataTransfer(source_engine=source_engine, destination_engine=destination_engine)
+data_transfer.transfer(
+    source_table='aspnet_Applications',
+    destination_table='aspnet_Applications',
+    source_schema='dbo',
+    destination_schema='CAP',
+    operation="insert",
+)
+
+# def sample(source_table, source_schema=None):
+#     if source_schema:
+#         source_table_spec = f"{source_schema}.{source_table}"
+#     else:
+#         source_table_spec = f"{source_table}"
+
+#     print(source_table_spec)
+
+
+# sample(source_table='users', source_schema='VHA')
