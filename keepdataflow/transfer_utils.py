@@ -1,6 +1,6 @@
 import json
 from sqlalchemy import create_engine
-from data_transfer import DatabaseDataTransfer
+from keepdataflow.data_transfer import DatabaseDataTransfer
 from data_engineer_utils import get_execution_order, sort_table_mappings
 
 
