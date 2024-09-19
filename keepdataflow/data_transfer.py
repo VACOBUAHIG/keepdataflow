@@ -1,7 +1,7 @@
 import polars as pl
-from df_merge import df_merge
-from df_insert_on_conflict import df_insert_on_conflict
-from df_insert import df_insert
+from keepdataflow.database_operations.df_merge import df_merge
+from keepdataflow.database_operations.df_insert_on_conflict import df_insert_on_conflict
+from keepdataflow.database_operations.df_insert import df_insert
 from abc import ABC, abstractmethod
 from sqlalchemy.engine.url import make_url
 from database_factory import DatabaseFactory
@@ -143,13 +143,23 @@ class DatabaseDataTransfer(DataTransfer):
                     schema=kwargs.get('destination_schema', destination_schema),
                     conflict_columns=kwargs.get('conflict_columns'),
                 )
-        elif operation == 'insert':
+        elif operation == 'append':
             # Call df_insert with its specific parameters
             df_insert(
                 data_frame,
                 destination_table,
                 self.destination_engine,
                 schema=kwargs.get('destination_schema', destination_schema),
+                truncate_table='N',
+            )
+        elif operation == 'refresh':
+            # Call df_insert with its specific parameters
+            df_insert(
+                data_frame,
+                destination_table,
+                self.destination_engine,
+                schema=kwargs.get('destination_schema', destination_schema),
+                truncate_table='Y',
             )
         else:
-            raise ValueError(f'Unsupported operation: {self.operation}')
+            raise ValueError(f'Unsupported operation: {operation}')

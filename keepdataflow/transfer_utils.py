@@ -1,6 +1,7 @@
 import json
 from sqlalchemy import create_engine
 from data_transfer import DatabaseDataTransfer
+from data_engineer_utils import get_execution_order, sort_table_mappings
 
 
 def load_config(file_path):
@@ -10,7 +11,7 @@ def load_config(file_path):
     return config
 
 
-def run_transfers(config):
+def run_transfers(config, source_connection=None, destination_connection=None, enforce_table_sort=False):
     """
     Run data transfers based on the configuration provided in the config file.
 
@@ -19,10 +20,19 @@ def run_transfers(config):
     - the type of operation (MERGE, INSERT ON CONFLICT, or basic INSERT).
     """
     # Create SQLAlchemy engines for the source and destination databases
-    source_connection_string = config["database"]["source_connection_string"]
-    destination_connection_string = config["database"]["destination_connection_string"]
 
-    # Create engines using SQLAlchemy
+    if config["database"]["sourceConnectionString"] == "":
+        config["database"]["sourceConnectionString"] = source_connection
+    if config["database"]["destinationConnectionString"] == "":
+        config["database"]["destinationConnectionString"] = destination_connection
+
+    # if config["database"]["sourceConnectionString"] or config["database"]["destinationConnectionString"] is None:
+    #     raise ValueError(f'Unsupported operation: {source_connection}')
+
+    source_connection_string = config["database"]["sourceConnectionString"]
+    destination_connection_string = config["database"]["destinationConnectionString"]
+
+    # # Create engines using SQLAlchemy
     source_engine = create_engine(source_connection_string)
     destination_engine = create_engine(destination_connection_string)
 
@@ -30,15 +40,22 @@ def run_transfers(config):
     data_transfer = DatabaseDataTransfer(
         source_engine=source_engine,
         destination_engine=destination_engine,
-        operation=config["database"].get("operation", "merge"),  # Default operation is merge
+        # Default operation is merge
     )
+    if enforce_table_sort:
+        execution_order = get_execution_order(destination_engine)
+        table_mapping = config.get('tables')
+        tables = sort_table_mappings(table_mapping, execution_order)
 
+    else:
+        tables = config.get('tables')
     # Transfer tables listed in the configuration
-    for table_config in config["tables"]:
-        source_table = table_config["source_table"]
-        destination_table = table_config["destination_table"]
-        source_schema = table_config.get("source_schema", "dbo")  # Default schema is dbo
-        destination_schema = table_config.get("destination_schema", "dbo")  # Default schema is dbo
+    for table_config in tables:
+        source_table = table_config["sourceTable"]
+        destination_table = table_config["targetTable"]
+        source_schema = table_config.get("sourceSchema", "dbo")  # Default schema is dbo
+        destination_schema = table_config.get("targetSchema", "dbo")  # Default schema is dbo
+        operation = table_config.get("operation", "append")
 
         print(f"Transferring {source_table} from {source_schema} to {destination_table} in {destination_schema}...")
 
@@ -55,11 +72,11 @@ def run_transfers(config):
         if "skip_updates" in table_config:
             additional_args["skip_updates"] = table_config["skip_updates"]
 
-        # Perform the data transfer
+        #     # Perform the data transfer
         data_transfer.transfer(
             source_table=source_table,
             destination_table=destination_table,
             source_schema=source_schema,
             destination_schema=destination_schema,
-            **additional_args,
+            operation=operation,
         )
