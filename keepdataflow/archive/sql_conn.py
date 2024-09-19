@@ -5,7 +5,7 @@ from typing import (
 )
 
 from keepdataflow._database_engine import DatabaseEngine
-from keepdataflow.database_operations import DatabaseOperations
+from keepdataflow.archive.database_operations import DatabaseOperations
 
 
 class SqlConn:
