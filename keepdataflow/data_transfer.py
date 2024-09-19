@@ -4,7 +4,8 @@ from keepdataflow.database_operations.df_insert_on_conflict import df_insert_on_
 from keepdataflow.database_operations.df_insert import df_insert
 from abc import ABC, abstractmethod
 from sqlalchemy.engine.url import make_url
-from database_factory import DatabaseFactory
+
+# from database_factory import DatabaseFactory
 
 # from database_factory
 
