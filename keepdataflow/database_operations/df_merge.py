@@ -108,7 +108,7 @@ def df_merge(
         stmt += f"  INSERT ({insert_cols_str}) VALUES ({insert_vals_str})"
 
     if not skip_deletes:
-        stmt += "\nWHEN NOT MATCHED BY main\nTHEN DELETE"
+        stmt += "\n WHEN NOT MATCHED BY SOURCE \nTHEN DELETE"
     # THEN DELETE
     stmt += ";"
 
