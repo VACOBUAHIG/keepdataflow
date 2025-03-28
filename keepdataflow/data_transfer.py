@@ -131,9 +131,9 @@ class DatabaseDataTransfer(DataTransfer):
                     self.destination_engine,
                     schema=kwargs.get("destination_schema", destination_schema),
                     match_columns=kwargs.get("match_columns"),
-                    insert_match_column=kwargs.get("insert_match_column", True),
+                    insert_match_column=kwargs.get("insertMatchColumn", True),
                     skip_inserts=kwargs.get("skip_inserts", False),
-                    skip_updates=kwargs.get("skip_updates", False),
+                    skip_updates=kwargs.get("skipUpdates", False),
                 )
             elif self.db_type == "postgresql":  # PostgreSQL
                 # Call df_insert_on_conflict with its specific parameters
