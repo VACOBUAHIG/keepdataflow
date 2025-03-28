@@ -25,6 +25,7 @@ def df_merge(
     dtype=None,
     skip_inserts=False,
     skip_updates=False,
+    skip_deletes=False,
 ):
     """
     Perform an "upsert" on a SQL Server table from a Polars DataFrame.
@@ -105,6 +106,10 @@ def df_merge(
         insert_cols_str = ",".join([f"[{col}]\n" for col in insert_columns])
         insert_vals_str = ",".join([f"temp.[{col}]\n" for col in insert_columns])
         stmt += f"  INSERT ({insert_cols_str}) VALUES ({insert_vals_str})"
+
+    if not skip_deletes:
+        stmt += "\nWHEN NOT MATCHED BY main\nTHEN DELETE"
+    # THEN DELETE
     stmt += ";"
 
     with engine.begin() as conn:
