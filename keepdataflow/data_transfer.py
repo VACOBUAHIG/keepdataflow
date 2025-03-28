@@ -134,6 +134,7 @@ class DatabaseDataTransfer(DataTransfer):
                     insert_match_column=kwargs.get("insertMatchColumn", True),
                     skip_inserts=kwargs.get("skip_inserts", False),
                     skip_updates=kwargs.get("skipUpdates", False),
+                    skip_deletes=kwargs.get("skipDeletes", False),
                 )
             elif self.db_type == "postgresql":  # PostgreSQL
                 # Call df_insert_on_conflict with its specific parameters
