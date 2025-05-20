@@ -1,0 +1,44 @@
+from sqlalchemy.engine import Engine
+from typing import Dict, Any, Optional, Literal, List
+from sqlalchemy import text
+
+
+def run_stored_procedure(
+    engine: Engine,
+    procedure_name: str,
+    params: Optional[Dict[str, Any]] = None,
+    on_fail: Literal["continue", "fail"] = "fail",
+) -> List[Any]:
+    """
+    Executes a stored procedure using SQLAlchemy.
+
+    Args:
+        engine: SQLAlchemy engine or connection.
+        procedure_name (str): Name of the stored procedure.
+        params (dict or None): Parameters for the stored procedure.
+        on_fail (str): "continue" to continue on failure, "fail" to raise exception.
+
+    Returns:
+        List of results for the procedure executed.
+    """
+    if params is None:
+        params = {}
+
+    placeholders = ', '.join([f":{k}" for k in params.keys()]) if params else ''
+    sql = f"CALL {procedure_name}({placeholders})" if placeholders else f"CALL {procedure_name}()"
+
+    results = []
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text(sql), params)
+            try:
+                results.append(result.fetchall())
+            except Exception:
+                results.append(None)
+    except Exception:
+        if on_fail == "fail":
+            raise
+        else:
+            results.append(None)
+
+    return results
