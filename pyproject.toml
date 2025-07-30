@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "keepdataflow"
-version = "0.1.0"
+version = "0.1.1"
 description = ""
 authors = ["George Buahin <geob3d@gmail.com>"]
 readme = "README.md"
